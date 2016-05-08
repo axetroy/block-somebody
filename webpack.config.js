@@ -10,7 +10,7 @@ module.exports = {
   ],
   output: {
     path: distPath,
-    filename: 'block.js'
+    filename: 'block.user.js'
   },
   resolve: {
     extensions: ['', '.coffee', '.js']
@@ -92,12 +92,12 @@ module.exports = {
       // include: string | RegExp | Array,
 
       // file and reference
-      filename: 'block.map',
+      filename: 'block.user.map',
       append: false,
 
       // sources naming
-      moduleFilenameTemplate: 'block.map',
-      fallbackModuleFilenameTemplate: 'block.map',
+      moduleFilenameTemplate: 'block.user.map',
+      fallbackModuleFilenameTemplate: 'block.user.map',
 
       // quality/performance
       module: true,
