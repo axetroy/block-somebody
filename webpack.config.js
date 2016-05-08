@@ -92,12 +92,12 @@ module.exports = {
       // include: string | RegExp | Array,
 
       // file and reference
-      filename: '$resource.map',
+      filename: 'block.map',
       append: false,
 
       // sources naming
-      moduleFilenameTemplate: '$resource.map',
-      fallbackModuleFilenameTemplate: '$resource.map',
+      moduleFilenameTemplate: 'block.map',
+      fallbackModuleFilenameTemplate: 'block.map',
 
       // quality/performance
       module: true,
