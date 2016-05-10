@@ -2,7 +2,7 @@
 // @name    Block somebody
 // @author  burningall
 // @description 在贴吧屏蔽某人,眼不见心不烦
-// @version     2016.05.08
+// @version     2016.05.11
 // @include     *tieba.baidu.com/p/*
 // @include     *tieba.baidu.com/*
 // @include     *tieba.baidu.com/f?*
@@ -76,253 +76,112 @@
 
 	'use strict';
 
-	var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }();
-
 	var _jqLite = __webpack_require__(2);
 
 	var _jqLite2 = _interopRequireDefault(_jqLite);
 
-	var _style = __webpack_require__(48);
+	var _icon = __webpack_require__(48);
 
-	var _style2 = _interopRequireDefault(_style);
+	var _icon2 = _interopRequireDefault(_icon);
 
-	var _blockIcon = __webpack_require__(50);
+	var _panel = __webpack_require__(49);
 
-	var _blockIcon2 = _interopRequireDefault(_blockIcon);
+	var _panel2 = _interopRequireDefault(_panel);
 
-	var _config = __webpack_require__(49);
+	var _common = __webpack_require__(51);
+
+	var _common2 = _interopRequireDefault(_common);
 
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-	var blockIcon = _blockIcon2.default;
+	var panel = new _panel2.default();
+	var POSITION = _common2.default.getPosition();
+
+	var initCount = 0;
+	var $icon = (0, _jqLite2.default)(document.createElement("a")).addClass('block-icon').html(_icon2.default);
+	var init = function init() {
+	  if (POSITION === 'post') {
+	    initCount++;
+	    (0, _jqLite2.default)('.p_postlist .l_post').each(function (post) {
+	      var $name = (0, _jqLite2.default)(post).find('.d_author ul.p_author li.d_name');
+	      if (!$name[0]) return;
+
+	      var id = $name.find('a[data-field].p_author_name').text().trim();
+
+	      if (!id) return;
+
+	      var icon = $icon[0].cloneNode(true);
+
+	      if (GM_listValues().indexOf(id) > -1) return post.remove();
+
+	      if ($name.find('svg').length) return;
+
+	      (0, _jqLite2.default)(icon).click(function () {
+	        var bar = _common2.default.getBarName();
+
+	        var reason = '在帖子中选择';
+
+
+	        GM_setValue(id, { id: id, bar: bar, reason: reason, date: new Date() });
+	        (0, _jqLite2.default)('.p_postlist .l_post').each(function (ele) {
+	          var username = (0, _jqLite2.default)(ele).attr('data-field').replace(/\'/g, '"');
+	          if (!username) return;
+	          username = JSON.parse(username).author.user_name || JSON.parse(username).author.name_u;
+	          username = username.replace(/\&ie\=.*$/ig, '');
+	          username = decodeURI(username);
+	          if (username === id) ele.remove();
+	        });
+	      });
+
+	      $name[0].appendChild(icon);
+	    });
+	  } else if (POSITION === 'list') {
+	    (function () {
+	      var interval = setInterval(function () {
+	        var postList = (0, _jqLite2.default)('ul#thread_list li[data-field].j_thread_list');
+	        if (!postList.length) return;
+
+	        clearInterval(interval);
+	        initCount++;
+	        postList.each(function (post) {
+	          var $name = (0, _jqLite2.default)(post).find('.j_threadlist_li_right .tb_icon_author');
+	          if (!$name[0]) return;
+
+	          var id = $name.find('a[data-field].frs-author-name').text().trim();
+	          var icon = $icon[0].cloneNode(true);
+
+	          if (GM_listValues().indexOf(id) > -1) return post.remove();
+
+	          (0, _jqLite2.default)(icon).click(function () {
+	            var bar = _common2.default.getBarName();
+
+	            var reason = '贴吧首页选择';
+
+	            if (!id) return;
+	            GM_setValue(id, { id: id, bar: bar, reason: reason, date: new Date() });
+
+	            (0, _jqLite2.default)('ul#thread_list li[data-field].j_thread_list').each(function (_post) {
+	              var username = (0, _jqLite2.default)(_post).find('a[data-field].frs-author-name').text().trim();
+	              if (!username) return;
+	              if (username === id) _post.remove();
+	            });
+	          });
+
+	          $name[0].appendChild(icon);
+	        });
+	      }, 100);
+	    })();
+	  }
+	};
 
 	(0, _jqLite2.default)(function () {
-	  var config = {};
 
-	  var common = {
-	    formatDate: function formatDate(date, fmt) {
-	      var o = {
-	        "M+": date.getMonth() + 1, //月份
-	        "d+": date.getDate(), //日
-	        "h+": date.getHours(), //小时
-	        "m+": date.getMinutes(), //分
-	        "s+": date.getSeconds(), //秒
-	        "q+": Math.floor((date.getMonth() + 3) / 3), //季度
-	        "S": date.getMilliseconds() //毫秒
-	      };
-	      if (/(y+)/.test(fmt)) fmt = fmt.replace(RegExp.$1, (date.getFullYear() + "").substr(4 - RegExp.$1.length));
-	      for (var k in o) {
-	        if (new RegExp("(" + k + ")").test(fmt)) {
-	          fmt = fmt.replace(RegExp.$1, RegExp.$1.length == 1 ? o[k] : ("00" + o[k]).substr(("" + o[k]).length));
-	        }
-	      }
-	      return fmt;
-	    },
-
-	    // 获取当前所在的位置，是贴吧列表，还是贴吧内容页
-	    getPosition: function getPosition() {
-	      var url = location.href;
-	      var postInside = /.*tieba.baidu.com\/p\/.*/ig;
-	      var postList = /.*tieba.baidu.com\/(f\?.*|[^p])/ig;
-	      return postInside.test(url) ? 'post' : postList.test(url) ? 'list' : null;
-	    },
-
-	    // 获取当前页的贴吧名
-	    getBarName: function getBarName() {
-	      return (0, _jqLite2.default)(".card_title_fname").text().trim();
-	    },
-
-	    // 显示控制面板
-	    showPanel: function showPanel() {
-
-	      if ((0, _jqLite2.default)('#' + _config.MaskID).length) return;
-
-	      var fragment = document.createDocumentFragment(); // 创建文档碎片
-	      var $$div = document.createElement('div'); // 创建div
-	      var $mask = (0, _jqLite2.default)($$div.cloneNode(false)); // 创建遮罩层
-	      var $panel = (0, _jqLite2.default)($$div.cloneNode(false)); // 创建控制面板
-
-	      $mask.attr('id', _config.MaskID);
-	      $panel.attr('id', _config.PanelID);
-
-	      $panel.html('\n<h2 class="block-title">控制面板</h2>\n<div class="block-container">\n  \n  <div class="block-menu">\n    <ul>\n      <li>配置</li>\n      <li>屏蔽</li>\n      <li>名单</li>\n    </ul>\n  </div>\n  \n  <div class="block-content">\n  \n    <session class="block-config">\n      <h2>暂时没什么可配置的...</h2>\n    </session>\n    \n    <session class="block-block">\n    \n      <form style="margin: 0 auto;">\n        <div>\n          <label>\n            *贴吧ID\n          </label>\n          <input class="block-id form-control" type="text" placeholder="贴吧ID"/>\n        </div>\n        \n        <div>\n          <label>\n            屏蔽原因\n          </label>\n          <input class="block-reason form-control" type="text" placeholder="屏蔽原因"/>\n        </div>\n        \n        <div>\n          <label>\n            所在贴吧\n          </label>\n          <input class="block-bar form-control" type="text" placeholder="所在贴吧" value="' + common.getBarName() + '"/>\n        </div>\n  \n        <input class="block-block-submit btn" type="button" value="提交"/>\n      </form>\n      \n    </session>\n    \n    <session class="block-list">\n    </session>\n  </div>\n  \n  <div class="block-clear"></div>\n\n</div>\n      ');
-
-	      $mask.append($panel);
-
-	      // 关掉控制面板
-	      $mask.click(function (e) {
-	        if ((0, _jqLite2.default)(e.target).attr('id') === _config.MaskID) $mask.remove();
-	      });
-
-	      var $menu = (0, _jqLite2.default)('.block-menu ul li', $mask[0]);
-	      var $session = (0, _jqLite2.default)('.block-content session', $mask[0]);
-	      var $config = $session.eq(0);
-	      var $block = $session.eq(1);
-	      var $list = $session.eq(2);
-
-	      // init the panel
-	      $menu.eq(0).addClass(_config.Active);
-	      $session.hide().eq(0).show();
-
-	      // get the block list
-	      $list.html(function () {
-	        var GMList = GM_listValues();
-	        var list = [];
-
-	        for (var i = 0; i < GMList.length; i++) {
-	          list[i] = GM_getValue(GMList[i]);
-	        }
-
-	        var tableStr = '';
-
-	        list.forEach(function (v, i) {
-	          var time = '';
-	          if (v.date) {
-	            var date = new Date(v.date);
-	            time = common.formatDate(date, 'yyyy-MM-dd');
-	          }
-	          tableStr += '\n            <tr>\n              <td>' + v.id + '</td>\n              <td>' + v.bar + '</td>\n              <td>' + v.reason + '</td>\n              <td>' + time + '</td>\n              <td>\n                <a class="block-remove btn" href="javascript:void(0)" block-id="' + v.id + '" list-index="' + i + '">移除</a>\n              </td>\n            </tr>\n          ';
-	        });
-
-	        return '\n          <table>\n            <thead>\n              <tr>\n                <th><b>贴吧ID</b></th>\n                <th><b>所在贴吧</b></th>\n                <th><b>屏蔽理由</b></th>\n                <th><b>屏蔽时间</b></th>\n                <th><b>操作</b></th>\n              </tr>\n            </thead>\n            <tbody>\n              ' + tableStr + '\n            </tbody>\n          </table>\n        ';
-	      }).find('.block-remove').click(function (e) {
-	        var $target = (0, _jqLite2.default)(e.target);
-	        var index = +$target.attr('list-index');
-	        var blockID = $target.attr('block-id');
-
-	        $list.find('table>tbody>tr').each(function (ele) {
-	          if ((0, _jqLite2.default)(ele).find('.block-remove').attr('block-id') === blockID) {
-	            ele.remove();
-	            GM_deleteValue(blockID);
-	          }
-	        });
-	      });
-
-	      // remove the panel
-	      $menu.click(function (e) {
-	        var index = (0, _jqLite2.default)(e.target).index;
-	        $menu.removeClass(_config.Active).eq(index).addClass(_config.Active);
-	        $session.hide().eq(index).show();
-	        return false;
-	      });
-
-	      // block someone
-	      $block.find('.block-block-submit').click(function (e) {
-	        var _map = ['id', 'bar', 'reason'].map(function (name) {
-	          return $block.find('.block-' + name);
-	        });
-
-	        var _map2 = _slicedToArray(_map, 3);
-
-	        var $id = _map2[0];
-	        var $bar = _map2[1];
-	        var $reason = _map2[2];
-
-	        var _map3 = [$id, $bar, $reason].map(function (input) {
-	          return input.val();
-	        });
-
-	        var _map4 = _slicedToArray(_map3, 3);
-
-	        var id = _map4[0];
-	        var bar = _map4[1];
-	        var reason = _map4[2];
-
-
-	        if (!id) return;
-	        GM_setValue(id, { id: id, bar: bar, reason: reason, date: new Date() });
-	        $id.val('');
-	        $reason.val('');
-	      });
-
-	      fragment.appendChild($mask[0]);
-	      document.documentElement.appendChild(fragment);
-	    }
-	  };
+	  GM_registerMenuCommand("控制面板", panel.create);
+	  GM_addStyle(__webpack_require__(53));
 
 	  (0, _jqLite2.default)(document).bind('keyup', function (e) {
-	    if (e.keyCode === 120) common.showPanel();
+	    if (e.keyCode === 120) panel.create();
 	  });
-
-	  GM_registerMenuCommand("控制面板", common.showPanel);
-
-	  (0, _style2.default)();
-
-	  var $icon = (0, _jqLite2.default)(document.createElement("a")).html(blockIcon);
-
-	  var initCount = 0;
-	  var init = function init() {
-	    if (common.getPosition() === 'post') {
-	      initCount++;
-	      (0, _jqLite2.default)('.p_postlist .l_post').each(function (post) {
-	        var $name = (0, _jqLite2.default)(post).find('.d_author ul.p_author li.d_name');
-	        if (!$name[0]) return;
-
-	        var id = $name.find('a[data-field].p_author_name').text().trim();
-
-	        if (!id) return;
-
-	        var icon = $icon[0].cloneNode(true);
-
-	        if (GM_listValues().indexOf(id) > -1) return post.remove();
-
-	        if ($name.find('svg').length) return;
-
-	        (0, _jqLite2.default)(icon).click(function () {
-	          var bar = common.getBarName();
-	          var reason = '在帖子中选择';
-
-
-	          GM_setValue(id, { id: id, bar: bar, reason: reason, date: new Date() });
-	          (0, _jqLite2.default)('.p_postlist .l_post').each(function (ele) {
-	            var username = (0, _jqLite2.default)(ele).attr('data-field').replace(/\'/g, '"');
-	            if (!username) return;
-	            username = JSON.parse(username).author.user_name || JSON.parse(username).author.name_u;
-	            username = username.replace(/\&ie\=.*$/ig, '');
-	            username = decodeURI(username);
-	            if (username === id) ele.remove();
-	          });
-	        });
-
-	        $name[0].appendChild(icon);
-	      });
-	    } else if (common.getPosition() === 'list') {
-	      (function () {
-	        var interval = setInterval(function () {
-	          var postList = (0, _jqLite2.default)('ul#thread_list li[data-field].j_thread_list');
-	          if (!postList.length) return;
-
-	          clearInterval(interval);
-	          initCount++;
-	          postList.each(function (post) {
-	            var $name = (0, _jqLite2.default)(post).find('.j_threadlist_li_right .tb_icon_author');
-	            if (!$name[0]) return;
-
-	            var id = $name.find('a[data-field].frs-author-name').text().trim();
-	            var icon = $icon[0].cloneNode(true);
-
-	            if (GM_listValues().indexOf(id) > -1) return post.remove();
-
-	            (0, _jqLite2.default)(icon).click(function () {
-	              var bar = common.getBarName();
-	              var reason = '贴吧首页选择';
-
-	              if (!id) return;
-	              GM_setValue(id, { id: id, bar: bar, reason: reason, date: new Date() });
-
-	              (0, _jqLite2.default)('ul#thread_list li[data-field].j_thread_list').each(function (_post) {
-	                var username = (0, _jqLite2.default)(_post).find('a[data-field].frs-author-name').text().trim();
-	                if (!username) return;
-	                if (username === id) _post.remove();
-	              });
-	            });
-
-	            $name[0].appendChild(icon);
-	          });
-	        }, 100);
-	      })();
-	    }
-	  };
 
 	  init();
 
@@ -367,7 +226,8 @@
 	          var icon = $icon[0].cloneNode(true);
 
 	          (0, _jqLite2.default)(icon).click(function (e) {
-	            var bar = common.getBarName();
+	            var bar = _common2.default.getBarName();
+
 	            var reason = '楼中楼选择';
 
 
@@ -379,8 +239,8 @@
 	              if (username === id) _lzl.remove();
 	            });
 	          });
-
-	          $name[0].insertBefore(icon, $name[0].childNodes[0]);
+	          $lzl.find('.lzl_content_reply')[0].appendChild(icon);
+	          // $name[0].insertBefore(icon, $name[0].childNodes[0]);
 	        });
 	      })();
 	    }
@@ -409,7 +269,8 @@
 	        if (!id) return;
 
 	        (0, _jqLite2.default)(icon).click(function (e) {
-	          var bar = common.getBarName();
+	          var bar = _common2.default.getBarName();
+
 	          var reason = '楼中楼选择';
 
 	          GM_setValue(id, { id: id, bar: bar, reason: reason, date: new Date() });
@@ -425,7 +286,10 @@
 	          // 删除帖子里面楼层的
 	          init();
 	        });
-	        $name[0].insertBefore(icon, $name[0].childNodes[0]);
+	        // $name[0].insertBefore(icon, $name[0].childNodes[0]);
+	        // $name[0].insertBefore(icon, $lzl.find('.lzl_content_reply'));
+	        // $lzl.find('.lzl_content_reply')[0].insertBefore(icon, $lzl.find('.lzl_content_reply')[0].childNodes[1])
+	        $lzl.find('.lzl_content_reply')[0].appendChild(icon);
 	      });
 	    });
 	  });
@@ -1568,43 +1432,6 @@
 
 /***/ },
 /* 48 */
-/***/ function(module, exports, __webpack_require__) {
-
-	'use strict';
-
-	Object.defineProperty(exports, "__esModule", {
-	  value: true
-	});
-
-	exports.default = function () {
-	  GM_addStyle('\n    /** 公共部分 **/\n    @font-face { \n      font-family: ifont;\n      src: url("http://at.alicdn.com/t/font_1442373896_4754455.eot?#iefix") format("embedded-opentype"), url("http://at.alicdn.com/t/font_1442373896_4754455.woff") format("woff"), url("http://at.alicdn.com/t/font_1442373896_4754455.ttf") format("truetype"), url("http://at.alicdn.com/t/font_1442373896_4754455.svg#ifont") format("svg");\n    }\n    ' + ('#' + _config.MaskID) + '{\n      position: fixed;\n      top: 0;\n      left: 0;\n      z-index: 9999999;\n      width:100%;\n      height:100%;\n      background: rgba(45, 45, 45, 0.6);\n      margin: 0;\n      padding: 0;\n      overflow: hidden;\n      font-size:14px;\n      line-height:1.42857143em;\n    }\n    \n    ' + ('#' + _config.MaskID) + ' *{\n      -webkit-box-sizing:border-box;\n      box-sizing:border-box;\n    }\n    \n    ' + ('#' + _config.MaskID) + ' label{\n      display:inline-block;\n      max-width:100%;\n      margin-bottom:5px;\n      font-weight:700;\n    }\n    \n    ' + ('#' + _config.MaskID) + ' .btn{\n      display:inline-block;\n      padding:6px 12px;\n      font-size:14px;\n      line-height:1.42857143;\n      text-align:center;\n      white-space:nowrap;\n      vertical-align:middle;\n      -ms-touch-action:manipulation;\n      touch-action:manipulation;\n      cursor:pointer;\n      -webkit-user-select:none;\n      -moz-user-select:none;\n      user-select:none;\n      background-image:none;\n      border:1px solid transparent;\n      border-radius:4px;\n      margin-top:5px;\n      margin-bottom:5px;\n      color:#333;\n      background-color:#fff;\n      border-color:#333;\n    }\n    \n    ' + ('#' + _config.MaskID) + ' .form-group{\n      margin-bottom:15px;\n    }\n    \n    ' + ('#' + _config.MaskID) + ' .form-control{\n      display:block;\n      width:100%;\n      height:34px;\n      padding:6px 12px;\n      font-size:14px;\n      line-height:1.42857143;\n      color:#555;\n      background-color:#fff;\n      background-image:none;\n      border:1px solid #ccc;\n      border-radius:4px;\n      -webkit-box-shadow:inset 0 1px 1px rgba(0,0,0,.075);\n      box-shadow:inset 0 1px 1px rgba(0,0,0,.075);\n      -webkit-transition:border-color ease-in-out .15s,-webkit-box-shadow ease-in-out .15s;\n      transition:border-color ease-in-out .15s,box-shadow ease-in-out .15s;\n    }\n    \n    ' + ('#' + _config.MaskID) + ' .form-control:focus{\n      border-color:#66afe9;\n      outline:0;\n      -webkit-box-shadow:inset 0 1px 1px rgba(0,0,0,.075),0 0 8px rgba(102,175,233,.6);\n      box-shadow:inset 0 1px 1px rgba(0,0,0,.075),0 0 8px rgba(102,175,233,.6);\n    }\n    \n    ' + ('#' + _config.MaskID) + ' p{\n      color:#fff;\n      line-height:3em;\n    }\n    \n    ' + ('#' + _config.MaskID) + ' a{\n      color:#555;\n      text-decoration:none;\n    }\n    \n    ' + ('#' + _config.MaskID) + ' .block-clear{\n      visibility:hidden;\n      font-size:0;\n      width:0;\n      height:0;\n      clear:both;\n    }\n    ' + ('#' + _config.MaskID) + ' ul{\n      list-style:none;\n    }\n    ' + ('#' + _config.MaskID) + ' ul li{\n      color:#555;\n    }\n    \n    \n    /** 非公共部分 **/\n    ' + ('#' + _config.PanelID) + '{\n      position: relative;\n      top: 100px;\n      width: 800px;\n      height: auto;\n      margin: 0 auto;\n      background: #fff;\n      z-index: inherit;\n    }\n    \n    ' + ('#' + _config.PanelID) + ' .block-title{\n      text-align:center;\n      line-height:36px;\n      font-size: 1.6em;\n      border-bottom:1px solid #ccc;\n    }\n    \n    ' + ('#' + _config.PanelID) + ' .block-container{\n      margin-top:10px;\n      padding-bottom:10px;\n    }\n    \n    ' + ('#' + _config.PanelID) + ' .block-menu{\n      width:10%;\n      float:left;\n    }\n    \n    ' + ('#' + _config.PanelID) + ' .block-menu ul{\n      text-align:center;\n    }\n    \n    ' + ('#' + _config.PanelID) + ' .block-menu ul li{\n      line-height:4em;\n      cursor:pointer;\n    }\n    \n    \n    ' + ('#' + _config.PanelID) + ' .block-menu ul li.active{\n      background:#6B6B6B;\n      color:#fff;\n    }\n    \n    ' + ('#' + _config.PanelID) + ' .block-content{\n      width:90%;\n      padding-left:20px;\n      float:left;\n      max-height:400px;\n      overflow-y:auto;\n    }\n    \n    ' + ('#' + _config.PanelID) + ' .block-content .block-list table{\n      width:100%;\n    }\n    \n    ' + ('#' + _config.PanelID) + ' .block-content .block-list table tr{\n      text-align:center;\n      line-height:24px;\n    }\n    \n  ');
-	};
-
-	var _config = __webpack_require__(49);
-
-/***/ },
-/* 49 */
-/***/ function(module, exports) {
-
-	'use strict';
-
-	Object.defineProperty(exports, "__esModule", {
-	  value: true
-	});
-	/**
-	 * Created by axetroy on 5/8/16.
-	 */
-
-	var MaskID = 'block-mask';
-	var PanelID = 'block-panel';
-	var Active = 'active';
-
-	exports.MaskID = MaskID;
-	exports.PanelID = PanelID;
-	exports.Active = Active;
-
-/***/ },
-/* 50 */
 /***/ function(module, exports) {
 
 	"use strict";
@@ -1615,10 +1442,585 @@
 	/**
 	 * Created by axetroy on 5/8/16.
 	 */
-
-	var svg = "\n<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" width=\"20\" height=\"20\" viewBox=\"0 0 200 200\" version=\"1.1\" style=\"\n    vertical-align: middle;\n\">\n<g class=\"transform-group\">\n  <g transform=\"scale(0.1953125, 0.1953125)\">\n    <path d=\"M822.809088 510.318592q0-91.994112-49.711104-168.56064l-430.829568 430.258176q78.280704 50.853888 169.703424 50.853888 63.424512 0 120.849408-24.855552t99.136512-66.567168 66.281472-99.707904 24.569856-121.4208zm-570.820608 170.846208l431.40096-430.829568q-77.13792-51.996672-171.4176-51.996672-84.566016 0-155.990016 41.711616t-113.135616 113.707008-41.711616 156.561408q0 92.565504 50.853888 170.846208zm698.812416-170.846208q0 89.708544-34.854912 171.4176t-93.422592 140.562432-139.99104 93.708288-170.560512 34.854912-170.560512-34.854912-139.99104-93.708288-93.422592-140.562432-34.854912-171.4176 34.854912-171.131904 93.422592-140.276736 139.99104-93.708288 170.560512-34.854912 170.560512 34.854912 139.99104 93.708288 93.422592 140.276736 34.854912 171.131904z\" fill=\"#272636\"></path>\n    </g>\n  </g>\n</svg>\n";
+	var svg = "\n<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" width=\"14\" height=\"14\" viewBox=\"0 0 200 200\" version=\"1.1\" style=\"\n    vertical-align: sub;\n\">\n<g class=\"transform-group\">\n  <g transform=\"scale(0.1953125, 0.1953125)\">\n    <path d=\"M822.809088 510.318592q0-91.994112-49.711104-168.56064l-430.829568 430.258176q78.280704 50.853888 169.703424 50.853888 63.424512 0 120.849408-24.855552t99.136512-66.567168 66.281472-99.707904 24.569856-121.4208zm-570.820608 170.846208l431.40096-430.829568q-77.13792-51.996672-171.4176-51.996672-84.566016 0-155.990016 41.711616t-113.135616 113.707008-41.711616 156.561408q0 92.565504 50.853888 170.846208zm698.812416-170.846208q0 89.708544-34.854912 171.4176t-93.422592 140.562432-139.99104 93.708288-170.560512 34.854912-170.560512-34.854912-139.99104-93.708288-93.422592-140.562432-34.854912-171.4176 34.854912-171.131904 93.422592-140.276736 139.99104-93.708288 170.560512-34.854912 170.560512 34.854912 139.99104 93.708288 93.422592 140.276736 34.854912 171.131904z\" fill=\"#272636\"></path>\n    </g>\n  </g>\n</svg>\n";
 
 	exports.default = svg;
+
+/***/ },
+/* 49 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+
+	var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }();
+
+	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }(); /**
+	                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      * Created by axetroy on 5/10/16.
+	                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      */
+
+	var _jqLite = __webpack_require__(2);
+
+	var _jqLite2 = _interopRequireDefault(_jqLite);
+
+	var _formatDate = __webpack_require__(50);
+
+	var _formatDate2 = _interopRequireDefault(_formatDate);
+
+	var _common = __webpack_require__(51);
+
+	var _common2 = _interopRequireDefault(_common);
+
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+	var Panel = function () {
+	  function Panel() {
+	    _classCallCheck(this, Panel);
+	  }
+
+	  _createClass(Panel, [{
+	    key: 'create',
+	    value: function create() {
+	      if ((0, _jqLite2.default)('#block-mask').length) return;
+	      var root = document.createElement('div');
+
+	      this.$mask = (0, _jqLite2.default)(root.cloneNode(false)).attr('id', 'block-mask');
+	      this.$panel = (0, _jqLite2.default)(root.cloneNode(false)).attr('id', 'block-panel').html(__webpack_require__(52));
+
+	      this.$mask.append(this.$panel);
+
+	      this.$menu = this.$panel.find('.block-menu ul li');
+	      this.$session = this.$panel.find('.block-content .session');
+	      this.$config = this.$session.eq(0);
+	      this.$block = this.$session.eq(1);
+	      this.$list = this.$session.eq(2);
+
+	      this.init();
+	      this.link();
+
+	      document.documentElement.appendChild(this.$mask[0]);
+	      return this;
+	    }
+	  }, {
+	    key: 'remove',
+	    value: function remove() {
+	      this.$mask.remove();
+	    }
+	  }, {
+	    key: 'link',
+	    value: function link() {
+	      var _this2 = this;
+
+	      var _this = this;
+
+	      // 屏蔽列表的点击事件
+	      this.$list.click(function (e) {
+	        var $target = (0, _jqLite2.default)(e.target);
+	        var index = +$target.attr('list-index');
+	        var blockID = $target.attr('block-id');
+
+	        _this2.$list.find('table>tbody>tr').each(function (ele) {
+	          if ((0, _jqLite2.default)(ele).find('.block-remove').attr('block-id') === blockID) {
+	            ele.remove();
+	            GM_deleteValue(blockID);
+	          }
+	        });
+	      });
+
+	      // 控制面板的切换
+	      this.$menu.click(function (e) {
+	        var index = (0, _jqLite2.default)(e.target).index;
+	        _this2.$menu.removeClass('active').eq(index).addClass('active');
+	        _this2.$session.hide().eq(index).show();
+	        return false;
+	      });
+
+	      // 点击屏蔽按钮
+	      // block someone
+	      this.$block.find('.block-block-submit').click(function (e) {
+	        var _map = ['id', 'bar', 'reason'].map(function (name) {
+	          return _this2.$block.find('.block-' + name);
+	        });
+
+	        var _map2 = _slicedToArray(_map, 3);
+
+	        var $id = _map2[0];
+	        var $bar = _map2[1];
+	        var $reason = _map2[2];
+
+	        var _map3 = [$id, $bar, $reason].map(function (input) {
+	          return input.val();
+	        });
+
+	        var _map4 = _slicedToArray(_map3, 3);
+
+	        var id = _map4[0];
+	        var bar = _map4[1];
+	        var reason = _map4[2];
+
+
+	        if (!id) return;
+	        GM_setValue(id, { id: id, bar: bar, reason: reason, date: new Date() });
+	        $id.val('');
+	        $reason.val('');
+	      });
+
+	      // 关掉控制面板
+	      this.$mask.click(function (e) {
+	        if ((0, _jqLite2.default)(e.target).attr('id') === 'block-mask') _this2.remove();
+	      });
+	    }
+	  }, {
+	    key: 'init',
+	    value: function init() {
+	      this.$menu.eq(0).addClass('active');
+	      this.$session.hide().eq(0).show();
+	      this.$panel.find('.block-bar').val(_common2.default.getBarName());
+
+	      this.$list.html(function () {
+	        var GMList = GM_listValues();
+	        var list = [];
+
+	        for (var i = 0; i < GMList.length; i++) {
+	          list[i] = GM_getValue(GMList[i]);
+	        }
+
+	        var tableStr = '';
+
+	        list.forEach(function (v, i) {
+	          var time = '';
+	          if (v.date) {
+	            var date = new Date(v.date);
+	            time = (0, _formatDate2.default)(date, 'yyyy-MM-dd');
+	          }
+	          tableStr += '\n            <tr>\n              <td>' + v.id + '</td>\n              <td>' + v.bar + '</td>\n              <td>' + v.reason + '</td>\n              <td>' + time + '</td>\n              <td>\n                <a class="block-remove btn" href="javascript:void(0)" block-id="' + v.id + '" list-index="' + i + '">移除</a>\n              </td>\n            </tr>\n          ';
+	        });
+
+	        return '\n          <table>\n            <thead>\n              <tr>\n                <th><b>贴吧ID</b></th>\n                <th><b>所在贴吧</b></th>\n                <th><b>屏蔽理由</b></th>\n                <th><b>屏蔽时间</b></th>\n                <th><b>操作</b></th>\n              </tr>\n            </thead>\n            <tbody>\n              ' + tableStr + '\n            </tbody>\n          </table>\n        ';
+	      });
+	    }
+	  }]);
+
+	  return Panel;
+	}();
+
+	exports.default = Panel;
+
+/***/ },
+/* 50 */
+/***/ function(module, exports) {
+
+	"use strict";
+
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+	exports.default = formatDate;
+	function formatDate(date, fmt) {
+	  var o = {
+	    "M+": date.getMonth() + 1, //月份
+	    "d+": date.getDate(), //日
+	    "h+": date.getHours(), //小时
+	    "m+": date.getMinutes(), //分
+	    "s+": date.getSeconds(), //秒
+	    "q+": Math.floor((date.getMonth() + 3) / 3), //季度
+	    "S": date.getMilliseconds() //毫秒
+	  };
+	  if (/(y+)/.test(fmt)) fmt = fmt.replace(RegExp.$1, (date.getFullYear() + "").substr(4 - RegExp.$1.length));
+	  for (var k in o) {
+	    if (new RegExp("(" + k + ")").test(fmt)) {
+	      fmt = fmt.replace(RegExp.$1, RegExp.$1.length == 1 ? o[k] : ("00" + o[k]).substr(("" + o[k]).length));
+	    }
+	  }
+	  return fmt;
+	};
+
+/***/ },
+/* 51 */
+/***/ function(module, exports) {
+
+	'use strict';
+
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+
+	var common = {
+	  // 获取当前所在的位置，是贴吧列表，还是贴吧内容页
+
+	  getPosition: function getPosition() {
+	    var url = location.href;
+	    var postInside = /.*tieba.baidu.com\/p\/.*/ig;
+	    var postList = /.*tieba.baidu.com\/(f\?.*|[^p])/ig;
+	    return postInside.test(url) ? 'post' : postList.test(url) ? 'list' : null;
+	  },
+
+	  // 获取当前页的贴吧名
+	  getBarName: function getBarName() {
+	    return $(".card_title_fname").text().trim();
+	  }
+	};
+
+	exports.default = common;
+
+/***/ },
+/* 52 */
+/***/ function(module, exports) {
+
+	module.exports = "<h2 class=\"block-title\">控制面板</h2>\n<div class=\"block-container\">\n\n  <div class=\"block-menu\">\n    <ul>\n      <li>配置</li>\n      <li>屏蔽</li>\n      <li>名单</li>\n    </ul>\n  </div>\n\n  <div class=\"block-content\">\n\n    <div class=\"session block-config\">\n      <h2>暂时没什么可配置的...</h2>\n    </div>\n\n    <div class=\"session block-block\">\n\n      <form style=\"margin: 0 auto;\">\n        <div>\n          <label>\n            *贴吧ID\n          </label>\n          <input class=\"block-id form-control\" type=\"text\" placeholder=\"贴吧ID\"/>\n        </div>\n\n        <div>\n          <label>\n            屏蔽原因\n          </label>\n          <input class=\"block-reason form-control\" type=\"text\" placeholder=\"屏蔽原因\"/>\n        </div>\n\n        <div>\n          <label>\n            所在贴吧\n          </label>\n          <input class=\"block-bar form-control\" type=\"text\" placeholder=\"所在贴吧\" value=\"\"/>\n        </div>\n\n        <input class=\"block-block-submit btn\" type=\"button\" value=\"提交\"/>\n      </form>\n\n    </div>\n\n    <div class=\"session block-list\">\n    </div>\n  </div>\n\n  <div class=\"block-clear\"></div>\n\n</div>";
+
+/***/ },
+/* 53 */
+/***/ function(module, exports, __webpack_require__) {
+
+	// style-loader: Adds some css to the DOM by adding a <style> tag
+
+	// load the styles
+	var content = __webpack_require__(54);
+	if(typeof content === 'string') content = [[module.id, content, '']];
+	// add the styles to the DOM
+	var update = __webpack_require__(56)(content, {});
+	if(content.locals) module.exports = content.locals;
+	// Hot Module Replacement
+	if(false) {
+		// When the styles change, update the <style> tags
+		if(!content.locals) {
+			module.hot.accept("!!./../node_modules/.npminstall/css-loader/0.23.1/css-loader/index.js!./../node_modules/.npminstall/sass-loader/3.2.0/sass-loader/index.js!./style.scss", function() {
+				var newContent = require("!!./../node_modules/.npminstall/css-loader/0.23.1/css-loader/index.js!./../node_modules/.npminstall/sass-loader/3.2.0/sass-loader/index.js!./style.scss");
+				if(typeof newContent === 'string') newContent = [[module.id, newContent, '']];
+				update(newContent);
+			});
+		}
+		// When the module is disposed, remove the <style> tags
+		module.hot.dispose(function() { update(); });
+	}
+
+/***/ },
+/* 54 */
+/***/ function(module, exports, __webpack_require__) {
+
+	exports = module.exports = __webpack_require__(55)();
+	// imports
+
+
+	// module
+	exports.push([module.id, "@charset \"UTF-8\";\n/** 公共部分 **/\n@font-face {\n  font-family: ifont;\n  src: url(\"http://at.alicdn.com/t/font_1442373896_4754455.eot?#iefix\") format(\"embedded-opentype\"), url(\"http://at.alicdn.com/t/font_1442373896_4754455.woff\") format(\"woff\"), url(\"http://at.alicdn.com/t/font_1442373896_4754455.ttf\") format(\"truetype\"), url(\"http://at.alicdn.com/t/font_1442373896_4754455.svg#ifont\") format(\"svg\"); }\n\n#block-mask {\n  position: fixed;\n  top: 0;\n  left: 0;\n  z-index: 9999999;\n  width: 100%;\n  height: 100%;\n  background: rgba(45, 45, 45, 0.6);\n  margin: 0;\n  padding: 0;\n  overflow: hidden;\n  font-size: 14px;\n  line-height: 1.42857143em;\n  /** 非公共部分 **/ }\n  #block-mask * {\n    -webkit-box-sizing: border-box;\n    box-sizing: border-box; }\n  #block-mask label {\n    display: inline-block;\n    max-width: 100%;\n    margin-bottom: 5px;\n    font-weight: 700; }\n  #block-mask .btn {\n    display: inline-block;\n    padding: 6px 12px;\n    font-size: 14px;\n    line-height: 1.42857143;\n    text-align: center;\n    white-space: nowrap;\n    vertical-align: middle;\n    -ms-touch-action: manipulation;\n    touch-action: manipulation;\n    cursor: pointer;\n    -webkit-user-select: none;\n    -moz-user-select: none;\n    user-select: none;\n    background-image: none;\n    border: 1px solid transparent;\n    border-radius: 4px;\n    margin-top: 5px;\n    margin-bottom: 5px;\n    color: #333;\n    background-color: #fff;\n    border-color: #333; }\n  #block-mask .form-group {\n    margin-bottom: 15px; }\n  #block-mask .form-control {\n    display: block;\n    width: 100%;\n    height: 34px;\n    padding: 6px 12px;\n    font-size: 14px;\n    line-height: 1.42857143;\n    color: #555;\n    background-color: #fff;\n    background-image: none;\n    border: 1px solid #ccc;\n    border-radius: 4px;\n    -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);\n    box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);\n    -webkit-transition: border-color ease-in-out .15s, -webkit-box-shadow ease-in-out .15s;\n    transition: border-color ease-in-out .15s, box-shadow ease-in-out .15s; }\n    #block-mask .form-control:focus {\n      border-color: #66afe9;\n      outline: 0;\n      -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 8px rgba(102, 175, 233, 0.6);\n      box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 8px rgba(102, 175, 233, 0.6); }\n  #block-mask p {\n    color: #fff;\n    line-height: 3em; }\n  #block-mask a {\n    color: #555;\n    text-decoration: none; }\n  #block-mask .block-clear {\n    visibility: hidden;\n    font-size: 0;\n    width: 0;\n    height: 0;\n    clear: both; }\n  #block-mask ul {\n    list-style: none; }\n    #block-mask ul li {\n      color: #555; }\n  #block-mask #block-panel {\n    position: relative;\n    top: 100px;\n    width: 800px;\n    height: auto;\n    margin: 0 auto;\n    background: #fff;\n    z-index: inherit; }\n    #block-mask #block-panel .block-title {\n      text-align: center;\n      line-height: 36px;\n      font-size: 1.6em;\n      border-bottom: 1px solid #ccc; }\n    #block-mask #block-panel .block-container {\n      margin-top: 10px;\n      padding-bottom: 10px; }\n    #block-mask #block-panel .block-menu {\n      width: 10%;\n      float: left; }\n      #block-mask #block-panel .block-menu ul {\n        text-align: center; }\n        #block-mask #block-panel .block-menu ul li {\n          line-height: 4em;\n          cursor: pointer; }\n          #block-mask #block-panel .block-menu ul li.active {\n            background: #6B6B6B;\n            color: #fff; }\n    #block-mask #block-panel .block-content {\n      width: 90%;\n      padding-left: 20px;\n      float: left;\n      max-height: 400px;\n      overflow-y: auto; }\n      #block-mask #block-panel .block-content .block-list table {\n        width: 100%; }\n        #block-mask #block-panel .block-content .block-list table tr {\n          text-align: center;\n          line-height: 24px; }\n\na.block-icon {\n  display: inline; }\n", ""]);
+
+	// exports
+
+
+/***/ },
+/* 55 */
+/***/ function(module, exports) {
+
+	/*
+		MIT License http://www.opensource.org/licenses/mit-license.php
+		Author Tobias Koppers @sokra
+	*/
+	// css base code, injected by the css-loader
+	module.exports = function() {
+		var list = [];
+
+		// return the list of modules as css string
+		list.toString = function toString() {
+			var result = [];
+			for(var i = 0; i < this.length; i++) {
+				var item = this[i];
+				if(item[2]) {
+					result.push("@media " + item[2] + "{" + item[1] + "}");
+				} else {
+					result.push(item[1]);
+				}
+			}
+			return result.join("");
+		};
+
+		// import a list of modules into the list
+		list.i = function(modules, mediaQuery) {
+			if(typeof modules === "string")
+				modules = [[null, modules, ""]];
+			var alreadyImportedModules = {};
+			for(var i = 0; i < this.length; i++) {
+				var id = this[i][0];
+				if(typeof id === "number")
+					alreadyImportedModules[id] = true;
+			}
+			for(i = 0; i < modules.length; i++) {
+				var item = modules[i];
+				// skip already imported module
+				// this implementation is not 100% perfect for weird media query combinations
+				//  when a module is imported multiple times with different media queries.
+				//  I hope this will never occur (Hey this way we have smaller bundles)
+				if(typeof item[0] !== "number" || !alreadyImportedModules[item[0]]) {
+					if(mediaQuery && !item[2]) {
+						item[2] = mediaQuery;
+					} else if(mediaQuery) {
+						item[2] = "(" + item[2] + ") and (" + mediaQuery + ")";
+					}
+					list.push(item);
+				}
+			}
+		};
+		return list;
+	};
+
+
+/***/ },
+/* 56 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/*
+		MIT License http://www.opensource.org/licenses/mit-license.php
+		Author Tobias Koppers @sokra
+	*/
+	var stylesInDom = {},
+		memoize = function(fn) {
+			var memo;
+			return function () {
+				if (typeof memo === "undefined") memo = fn.apply(this, arguments);
+				return memo;
+			};
+		},
+		isOldIE = memoize(function() {
+			return /msie [6-9]\b/.test(window.navigator.userAgent.toLowerCase());
+		}),
+		getHeadElement = memoize(function () {
+			return document.head || document.getElementsByTagName("head")[0];
+		}),
+		singletonElement = null,
+		singletonCounter = 0,
+		styleElementsInsertedAtTop = [];
+
+	module.exports = function(list, options) {
+		if(false) {
+			if(typeof document !== "object") throw new Error("The style-loader cannot be used in a non-browser environment");
+		}
+
+		options = options || {};
+		// Force single-tag solution on IE6-9, which has a hard limit on the # of <style>
+		// tags it will allow on a page
+		if (typeof options.singleton === "undefined") options.singleton = isOldIE();
+
+		// By default, add <style> tags to the bottom of <head>.
+		if (typeof options.insertAt === "undefined") options.insertAt = "bottom";
+
+		var styles = listToStyles(list);
+		addStylesToDom(styles, options);
+
+		return function update(newList) {
+			var mayRemove = [];
+			for(var i = 0; i < styles.length; i++) {
+				var item = styles[i];
+				var domStyle = stylesInDom[item.id];
+				domStyle.refs--;
+				mayRemove.push(domStyle);
+			}
+			if(newList) {
+				var newStyles = listToStyles(newList);
+				addStylesToDom(newStyles, options);
+			}
+			for(var i = 0; i < mayRemove.length; i++) {
+				var domStyle = mayRemove[i];
+				if(domStyle.refs === 0) {
+					for(var j = 0; j < domStyle.parts.length; j++)
+						domStyle.parts[j]();
+					delete stylesInDom[domStyle.id];
+				}
+			}
+		};
+	}
+
+	function addStylesToDom(styles, options) {
+		for(var i = 0; i < styles.length; i++) {
+			var item = styles[i];
+			var domStyle = stylesInDom[item.id];
+			if(domStyle) {
+				domStyle.refs++;
+				for(var j = 0; j < domStyle.parts.length; j++) {
+					domStyle.parts[j](item.parts[j]);
+				}
+				for(; j < item.parts.length; j++) {
+					domStyle.parts.push(addStyle(item.parts[j], options));
+				}
+			} else {
+				var parts = [];
+				for(var j = 0; j < item.parts.length; j++) {
+					parts.push(addStyle(item.parts[j], options));
+				}
+				stylesInDom[item.id] = {id: item.id, refs: 1, parts: parts};
+			}
+		}
+	}
+
+	function listToStyles(list) {
+		var styles = [];
+		var newStyles = {};
+		for(var i = 0; i < list.length; i++) {
+			var item = list[i];
+			var id = item[0];
+			var css = item[1];
+			var media = item[2];
+			var sourceMap = item[3];
+			var part = {css: css, media: media, sourceMap: sourceMap};
+			if(!newStyles[id])
+				styles.push(newStyles[id] = {id: id, parts: [part]});
+			else
+				newStyles[id].parts.push(part);
+		}
+		return styles;
+	}
+
+	function insertStyleElement(options, styleElement) {
+		var head = getHeadElement();
+		var lastStyleElementInsertedAtTop = styleElementsInsertedAtTop[styleElementsInsertedAtTop.length - 1];
+		if (options.insertAt === "top") {
+			if(!lastStyleElementInsertedAtTop) {
+				head.insertBefore(styleElement, head.firstChild);
+			} else if(lastStyleElementInsertedAtTop.nextSibling) {
+				head.insertBefore(styleElement, lastStyleElementInsertedAtTop.nextSibling);
+			} else {
+				head.appendChild(styleElement);
+			}
+			styleElementsInsertedAtTop.push(styleElement);
+		} else if (options.insertAt === "bottom") {
+			head.appendChild(styleElement);
+		} else {
+			throw new Error("Invalid value for parameter 'insertAt'. Must be 'top' or 'bottom'.");
+		}
+	}
+
+	function removeStyleElement(styleElement) {
+		styleElement.parentNode.removeChild(styleElement);
+		var idx = styleElementsInsertedAtTop.indexOf(styleElement);
+		if(idx >= 0) {
+			styleElementsInsertedAtTop.splice(idx, 1);
+		}
+	}
+
+	function createStyleElement(options) {
+		var styleElement = document.createElement("style");
+		styleElement.type = "text/css";
+		insertStyleElement(options, styleElement);
+		return styleElement;
+	}
+
+	function createLinkElement(options) {
+		var linkElement = document.createElement("link");
+		linkElement.rel = "stylesheet";
+		insertStyleElement(options, linkElement);
+		return linkElement;
+	}
+
+	function addStyle(obj, options) {
+		var styleElement, update, remove;
+
+		if (options.singleton) {
+			var styleIndex = singletonCounter++;
+			styleElement = singletonElement || (singletonElement = createStyleElement(options));
+			update = applyToSingletonTag.bind(null, styleElement, styleIndex, false);
+			remove = applyToSingletonTag.bind(null, styleElement, styleIndex, true);
+		} else if(obj.sourceMap &&
+			typeof URL === "function" &&
+			typeof URL.createObjectURL === "function" &&
+			typeof URL.revokeObjectURL === "function" &&
+			typeof Blob === "function" &&
+			typeof btoa === "function") {
+			styleElement = createLinkElement(options);
+			update = updateLink.bind(null, styleElement);
+			remove = function() {
+				removeStyleElement(styleElement);
+				if(styleElement.href)
+					URL.revokeObjectURL(styleElement.href);
+			};
+		} else {
+			styleElement = createStyleElement(options);
+			update = applyToTag.bind(null, styleElement);
+			remove = function() {
+				removeStyleElement(styleElement);
+			};
+		}
+
+		update(obj);
+
+		return function updateStyle(newObj) {
+			if(newObj) {
+				if(newObj.css === obj.css && newObj.media === obj.media && newObj.sourceMap === obj.sourceMap)
+					return;
+				update(obj = newObj);
+			} else {
+				remove();
+			}
+		};
+	}
+
+	var replaceText = (function () {
+		var textStore = [];
+
+		return function (index, replacement) {
+			textStore[index] = replacement;
+			return textStore.filter(Boolean).join('\n');
+		};
+	})();
+
+	function applyToSingletonTag(styleElement, index, remove, obj) {
+		var css = remove ? "" : obj.css;
+
+		if (styleElement.styleSheet) {
+			styleElement.styleSheet.cssText = replaceText(index, css);
+		} else {
+			var cssNode = document.createTextNode(css);
+			var childNodes = styleElement.childNodes;
+			if (childNodes[index]) styleElement.removeChild(childNodes[index]);
+			if (childNodes.length) {
+				styleElement.insertBefore(cssNode, childNodes[index]);
+			} else {
+				styleElement.appendChild(cssNode);
+			}
+		}
+	}
+
+	function applyToTag(styleElement, obj) {
+		var css = obj.css;
+		var media = obj.media;
+
+		if(media) {
+			styleElement.setAttribute("media", media)
+		}
+
+		if(styleElement.styleSheet) {
+			styleElement.styleSheet.cssText = css;
+		} else {
+			while(styleElement.firstChild) {
+				styleElement.removeChild(styleElement.firstChild);
+			}
+			styleElement.appendChild(document.createTextNode(css));
+		}
+	}
+
+	function updateLink(linkElement, obj) {
+		var css = obj.css;
+		var sourceMap = obj.sourceMap;
+
+		if(sourceMap) {
+			// http://stackoverflow.com/a/26603875
+			css += "\n/*# sourceMappingURL=data:application/json;base64," + btoa(unescape(encodeURIComponent(JSON.stringify(sourceMap)))) + " */";
+		}
+
+		var blob = new Blob([css], { type: "text/css" });
+
+		var oldSrc = linkElement.href;
+
+		linkElement.href = URL.createObjectURL(blob);
+
+		if(oldSrc)
+			URL.revokeObjectURL(oldSrc);
+	}
+
 
 /***/ }
 /******/ ]);

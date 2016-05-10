@@ -23,14 +23,27 @@ module.exports = {
         loader: 'babel', // 'babel-loader' is also a legal name to reference
         query: {
           presets: ['es2015'],
-          plugins: [
-            // 'transform-flow-strip-types',
-            // 'transform-es2015-block-scoping',
-            // 'transform-regenerator'
-            // 'transform-runtime'
-          ]
+          plugins: []
         }
+      },
+      {
+        test: /\.html$/,
+        loader: "html"
+      },
+      {
+        test: /.*\.svg$/,
+        loaders: [
+          'file-loader',
+          'svgo-loader?useConfig=svgoConfig1'
+        ]
       }
+    ]
+  },
+  svgoConfig1: {
+    plugins: [
+      {removeTitle: true},
+      {convertColors: {shorthex: false}},
+      {convertPathData: false}
     ]
   },
   plugins: [
@@ -52,7 +65,7 @@ module.exports = {
 // @name    Block somebody
 // @author  burningall
 // @description 在贴吧屏蔽某人,眼不见心不烦
-// @version     2016.05.08
+// @version     2016.05.11
 // @include     *tieba.baidu.com/p/*
 // @include     *tieba.baidu.com/*
 // @include     *tieba.baidu.com/f?*

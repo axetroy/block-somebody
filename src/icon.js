@@ -1,10 +1,9 @@
 /**
  * Created by axetroy on 5/8/16.
  */
-
 let svg = `
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="20" height="20" viewBox="0 0 200 200" version="1.1" style="
-    vertical-align: middle;
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="14" height="14" viewBox="0 0 200 200" version="1.1" style="
+    vertical-align: sub;
 ">
 <g class="transform-group">
   <g transform="scale(0.1953125, 0.1953125)">
